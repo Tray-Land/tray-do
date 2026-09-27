@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "TrayDo (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "TrayDo (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
