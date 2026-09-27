@@ -16,6 +16,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
     <NoWarn>$(NoWarn);CS0618</NoWarn>
+    <!-- The Core and Tests projects live under this folder but build on their own. -->
+    <DefaultItemExcludes>$(DefaultItemExcludes);TrayDo.Core\**;TrayDo.Tests\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
     <Content Include="Assets\SplashScreen.scale-200.png" />
@@ -29,6 +31,9 @@
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
     <Content Include="Assets\AppIcon-dark.ico" />
     <Content Remove="branding\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="TrayDo.Core\TrayDo.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <Manifest Include="$(ApplicationManifest)" />

@@ -6,8 +6,8 @@ namespace TrayDo.Services;
 
 /// <summary>
 /// Typed wrapper over <see cref="ApplicationData.LocalSettings"/>. Every read falls back to a
-/// default so a missing or corrupt value never crashes the app. Not for secrets: see
-/// <see cref="Secrets"/> (build-time app keys) and <see cref="CredentialStore"/> (user tokens).
+/// default so a missing or corrupt value never crashes the app. The task list itself
+/// lives in a file; see <see cref="TodoStore"/>.
 /// </summary>
 /// <remarks>
 /// LocalSettings values must be small (8 KB each) WinRT primitives. Store enums as int, and lists
@@ -22,6 +22,13 @@ internal static class SettingsService
     {
         get => Get(nameof(HasLaunchedBefore), false);
         set => Set(nameof(HasLaunchedBefore), value);
+    }
+
+    /// <summary>Which tab the flyout opens on: the hit list, or all tasks.</summary>
+    public static bool ShowHitList
+    {
+        get => Get(nameof(ShowHitList), false);
+        set => Set(nameof(ShowHitList), value);
     }
 
     public static T? GetJson<T>(string key, JsonTypeInfo<T> typeInfo)

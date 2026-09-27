@@ -26,6 +26,7 @@ public partial class App : Application
     private EventWaitHandle? _showEvent;
     private RegisteredWaitHandle? _showWait;
     private TrayIcon? _trayIcon;
+    private readonly TrayBadge _badge = new();
     private TrayFlyoutWindow? _flyout;
     private SettingsWindow? _settings;
     private DispatcherQueue? _dispatcher;
@@ -129,7 +130,32 @@ public partial class App : Application
         _trayIcon.ContextMenu += TrayIcon_ContextMenu;
         _trayIcon.IsVisible = true;
         WindowPlacementService.SetTrayIcon(_trayIcon);
-        SystemThemeService.Changed += (_, _) => _dispatcher?.TryEnqueue(() => _trayIcon?.SetIcon(TrayIconPath));
+        SystemThemeService.Changed += (_, _) => _dispatcher?.TryEnqueue(UpdateTrayIcon);
+        TodoStore.Changed += (_, _) => UpdateTrayIcon();
+        UpdateTrayIcon();
+    }
+
+    /// <summary>
+    /// While the hit list has open tasks, the icon is their count; otherwise it's the app icon. This
+    /// follows saved changes only, so the idle app does no work to keep it current.
+    /// </summary>
+    private void UpdateTrayIcon()
+    {
+        if (_trayIcon is null)
+        {
+            return;
+        }
+
+        int remaining = TodoStore.Board.HitListRemaining;
+        if (remaining > 0 && _badge.Show(_trayIcon, remaining))
+        {
+            SetTrayStatus(remaining == 1 ? "1 task left on your hit list" : $"{remaining} tasks left on your hit list");
+            return;
+        }
+
+        _trayIcon.SetIcon(TrayIconPath);
+        _badge.Release();
+        SetTrayStatus(null);
     }
 
     // A white glyph disappears on a light taskbar, which follows the Windows theme, not the app theme.
@@ -141,12 +167,28 @@ public partial class App : Application
         MenuFlyout menu = new();
         MenuFlyoutItem open = new() { Text = $"Open {DisplayName}", Icon = new FontIcon { Glyph = "" } };
         open.Click += (_, _) => ShowFlyout();
+        MenuFlyoutItem? clear = null;
+        if (TodoStore.Board.HitListCount > 0)
+        {
+            clear = new() { Text = "Clear hit list", Icon = new FontIcon { Glyph = "" } };
+            clear.Click += (_, _) =>
+            {
+                TodoStore.Board.ClearHitList();
+                TodoStore.Commit();
+            };
+        }
+
         MenuFlyoutItem settings = new() { Text = "Settings", Icon = new FontIcon { Glyph = "" } };
         settings.Click += (_, _) => ShowSettings();
         MenuFlyoutItem exit = new() { Text = "Exit", Icon = new FontIcon { Glyph = "" } };
         exit.Click += (_, _) => ExitApp();
 
         menu.Items.Add(open);
+        if (clear is not null)
+        {
+            menu.Items.Add(clear);
+        }
+
         menu.Items.Add(settings);
         menu.Items.Add(new MenuFlyoutSeparator());
         menu.Items.Add(exit);
@@ -189,6 +231,8 @@ public partial class App : Application
             _trayIcon.Dispose();
             _trayIcon = null;
         }
+
+        _badge.Release();
 
         _showWait?.Unregister(null);
         _showEvent?.Dispose();

@@ -19,3 +19,7 @@ SetProcessWorkingSetSize
 SetWindowLong
 SHAppBarMessage
 Shell_NotifyIconGetRect
+CreateIconFromResourceEx
+DestroyIcon
+GetDpiForSystem
+GetSystemMetricsForDpi

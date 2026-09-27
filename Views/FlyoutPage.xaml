@@ -3,10 +3,97 @@
     x:Class="TrayDo.Views.FlyoutPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:TrayDo.Views"
     Background="Transparent">
 
-    <Grid Padding="16,12,12,16" RowSpacing="12">
+    <Page.Resources>
+        <!--  Built per row when it opens, so the items match the task and the list it's in.  -->
+        <MenuFlyout x:Key="ItemMenu" Opening="ItemMenu_Opening" />
+
+
+        <DataTemplate x:Key="AllItemTemplate" x:DataType="local:TodoItemViewModel">
+            <Grid
+                Padding="0,2"
+                ColumnSpacing="4"
+                ContextFlyout="{StaticResource ItemMenu}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <CheckBox
+                    MinWidth="0"
+                    AutomationProperties.Name="{x:Bind DoneLabel, Mode=OneWay}"
+                    Click="DoneCheckBox_Click"
+                    IsChecked="{x:Bind IsDone, Mode=TwoWay}" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Opacity="{x:Bind TextOpacity, Mode=OneWay}"
+                    Text="{x:Bind Text, Mode=OneWay}"
+                    TextDecorations="{x:Bind Decorations, Mode=OneWay}"
+                    TextWrapping="Wrap" />
+                <Button
+                    Grid.Column="2"
+                    AutomationProperties.Name="{x:Bind HitListLabel, Mode=OneWay}"
+                    Click="HitListToggle_Click"
+                    Style="{StaticResource FlyoutIconButtonStyle}"
+                    ToolTipService.ToolTip="{x:Bind HitListLabel, Mode=OneWay}">
+                    <FontIcon
+                        FontSize="14"
+                        Foreground="{ThemeResource AccentTextFillColorPrimaryBrush}"
+                        Glyph="{x:Bind HitListGlyph, Mode=OneWay}" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="HitItemTemplate" x:DataType="local:TodoItemViewModel">
+            <Grid
+                Padding="0,2"
+                ColumnSpacing="4"
+                ContextFlyout="{StaticResource ItemMenu}">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <CheckBox
+                    MinWidth="0"
+                    AutomationProperties.Name="{x:Bind DoneLabel, Mode=OneWay}"
+                    Click="DoneCheckBox_Click"
+                    IsChecked="{x:Bind IsDone, Mode=TwoWay}" />
+                <TextBlock
+                    Grid.Column="1"
+                    VerticalAlignment="Center"
+                    Opacity="{x:Bind TextOpacity, Mode=OneWay}"
+                    Text="{x:Bind Text, Mode=OneWay}"
+                    TextDecorations="{x:Bind Decorations, Mode=OneWay}"
+                    TextWrapping="Wrap" />
+                <Button
+                    Grid.Column="2"
+                    AutomationProperties.Name="Remove from hit list"
+                    Click="HitListToggle_Click"
+                    Style="{StaticResource FlyoutIconButtonStyle}"
+                    ToolTipService.ToolTip="Remove from hit list">
+                    <FontIcon FontSize="12" Glyph="&#xE711;" />
+                </Button>
+            </Grid>
+        </DataTemplate>
+
+        <Style
+            x:Key="TaskListItemStyle"
+            BasedOn="{StaticResource DefaultListViewItemStyle}"
+            TargetType="ListViewItem">
+            <Setter Property="Padding" Value="8,0,4,0" />
+            <Setter Property="MinHeight" Value="40" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        </Style>
+    </Page.Resources>
+
+    <Grid Padding="16,12,12,16" RowSpacing="8">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -26,13 +113,23 @@
                 Style="{StaticResource SubtitleTextBlockStyle}"
                 Text="Tray Do" />
             <Button
-                x:Name="RefreshButton"
                 Grid.Column="1"
-                AutomationProperties.Name="Refresh"
-                Click="RefreshButton_Click"
+                AutomationProperties.Name="More options"
                 Style="{StaticResource FlyoutIconButtonStyle}"
-                ToolTipService.ToolTip="Refresh">
-                <FontIcon FontSize="14" Glyph="&#xE72C;" />
+                ToolTipService.ToolTip="More options">
+                <FontIcon FontSize="14" Glyph="&#xE712;" />
+                <Button.Flyout>
+                    <MenuFlyout Placement="BottomEdgeAlignedRight">
+                        <MenuFlyoutItem
+                            x:Name="DeleteCompletedItem"
+                            Click="DeleteCompleted_Click"
+                            Text="Delete completed tasks">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE74D;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
+                    </MenuFlyout>
+                </Button.Flyout>
             </Button>
             <Button
                 Grid.Column="2"
@@ -44,48 +141,118 @@
             </Button>
         </Grid>
 
-        <!--  Errors keep the last good content visible underneath  -->
+        <SelectorBar
+            x:Name="Tabs"
+            Grid.Row="1"
+            Margin="-4,0,0,0"
+            SelectionChanged="Tabs_SelectionChanged">
+            <SelectorBarItem x:Name="AllTab" Text="All tasks" />
+            <SelectorBarItem x:Name="HitTab" Text="Hit list" />
+        </SelectorBar>
+
         <InfoBar
             x:Name="StatusBar"
-            Grid.Row="1"
-            IsClosable="False"
-            IsOpen="False"
-            Severity="Warning" />
-
-        <!--  Content: replace with the app's own view  -->
-        <Border
             Grid.Row="2"
-            Padding="16"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="8">
-            <StackPanel VerticalAlignment="Center" Spacing="4">
+            IsClosable="True"
+            IsOpen="False"
+            Severity="Error" />
+
+        <!--  Enter adds one task; pasting several lines adds one task per line.  -->
+        <Grid Grid.Row="3" ColumnSpacing="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox
+                x:Name="AddBox"
+                AutomationProperties.HelpText="Press Enter to add. Paste several lines to add one task per line."
+                AutomationProperties.Name="New task"
+                KeyDown="AddBox_KeyDown"
+                Paste="AddBox_Paste"
+                PlaceholderText="Add a task" />
+            <Button
+                Grid.Column="1"
+                Height="32"
+                AutomationProperties.Name="Add task"
+                Click="AddButton_Click"
+                Style="{StaticResource AccentButtonStyle}"
+                ToolTipService.ToolTip="Add task">
+                <FontIcon FontSize="14" Glyph="&#xE710;" />
+            </Button>
+        </Grid>
+
+        <!--  All tasks  -->
+        <Grid x:Name="AllView" Grid.Row="4">
+            <ListView
+                x:Name="AllList"
+                Margin="-8,0,-4,0"
+                AutomationProperties.Name="All tasks"
+                ItemContainerStyle="{StaticResource TaskListItemStyle}"
+                ItemTemplate="{StaticResource AllItemTemplate}"
+                KeyDown="List_KeyDown"
+                SelectionMode="None" />
+            <TextBlock
+                x:Name="AllEmptyText"
+                Margin="8,24"
+                HorizontalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text="No tasks yet. Type one above, or paste a list to add a task for each line."
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
+        </Grid>
+
+        <!--  Hit list: the tasks picked for now, in the order they'll be done  -->
+        <Grid
+            x:Name="HitView"
+            Grid.Row="4"
+            RowSpacing="4"
+            Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+            </Grid.RowDefinitions>
+            <Grid x:Name="HitHeader">
                 <TextBlock
-                    x:Name="ValueText"
-                    HorizontalAlignment="Center"
-                    Style="{StaticResource TitleLargeTextBlockStyle}"
-                    Text="--" />
-                <TextBlock
-                    HorizontalAlignment="Center"
+                    x:Name="HitSummaryText"
+                    VerticalAlignment="Center"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="Replace this card with the app's content." />
-            </StackPanel>
-        </Border>
+                    Style="{StaticResource CaptionTextBlockStyle}" />
+                <Button
+                    x:Name="ClearHitListButton"
+                    HorizontalAlignment="Right"
+                    Click="ClearHitList_Click"
+                    Content="Clear all"
+                    ToolTipService.ToolTip="Take every task off the hit list. The tasks stay in All tasks." />
+            </Grid>
+            <ListView
+                x:Name="HitList"
+                Grid.Row="1"
+                Margin="-8,0,-4,0"
+                AllowDrop="True"
+                AutomationProperties.Name="Hit list"
+                CanDragItems="True"
+                CanReorderItems="True"
+                DragItemsCompleted="HitList_DragItemsCompleted"
+                ItemContainerStyle="{StaticResource TaskListItemStyle}"
+                ItemTemplate="{StaticResource HitItemTemplate}"
+                KeyDown="List_KeyDown"
+                SelectionMode="None" />
+            <TextBlock
+                x:Name="HitEmptyText"
+                Grid.Row="1"
+                Margin="8,24"
+                HorizontalAlignment="Center"
+                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                Text="Your hit list is empty. Star tasks in All tasks, or add one here, to line up what you'll do next."
+                TextAlignment="Center"
+                TextWrapping="Wrap" />
+        </Grid>
 
         <!--  Footer  -->
-        <Grid Grid.Row="3">
-            <TextBlock
-                x:Name="UpdatedText"
-                VerticalAlignment="Center"
-                Foreground="{ThemeResource TextFillColorTertiaryBrush}"
-                Style="{StaticResource CaptionTextBlockStyle}" />
-            <ProgressRing
-                x:Name="LoadingRing"
-                Width="16"
-                Height="16"
-                HorizontalAlignment="Right"
-                IsActive="False" />
-        </Grid>
+        <TextBlock
+            x:Name="FooterText"
+            Grid.Row="5"
+            Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+            Style="{StaticResource CaptionTextBlockStyle}" />
     </Grid>
 </Page>
