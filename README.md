@@ -49,3 +49,7 @@ dotnet test TrayDo.Tests
 | `TrayDo.Tests/` | Unit tests for `TrayDo.Core` |
 
 Built with WinUI 3 and the Windows App SDK.
+
+## License
+
+[MIT](LICENSE)
