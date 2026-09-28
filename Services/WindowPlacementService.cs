@@ -102,16 +102,6 @@ internal static class WindowPlacementService
         window.AppWindow.MoveAndResize(new RectInt32(x, y, w, h));
     }
 
-    /// <summary>Centers <paramref name="window"/> (logical size) on the primary display.</summary>
-    public static void CenterOnPrimary(Window window, int width, int height)
-    {
-        RectInt32 work = DisplayArea.Primary.WorkArea;
-        uint dpi = GetDpiForPoint(new PointInt32(work.X + (work.Width / 2), work.Y + (work.Height / 2)));
-        int w = ToPhysical(width, dpi);
-        int h = ToPhysical(height, dpi);
-        window.AppWindow.MoveAndResize(new RectInt32(work.X + ((work.Width - w) / 2), work.Y + ((work.Height - h) / 2), w, h));
-    }
-
     private static bool TryGetTrayIconRect(out RECT rect)
     {
         rect = default;
