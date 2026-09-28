@@ -43,6 +43,9 @@ public sealed partial class FlyoutPage : Page, IDisposable
         Sync();
     }
 
+    /// <summary>The settings button was clicked; the window swaps in the settings page.</summary>
+    public event EventHandler? SettingsRequested;
+
     private static TodoBoard Board => TodoStore.Board;
 
     private bool IsHitListShown => Tabs.SelectedItem == HitTab;
@@ -341,7 +344,7 @@ public sealed partial class FlyoutPage : Page, IDisposable
         SettingsService.ShowHitList = hit;
     }
 
-    private void SettingsButton_Click(object sender, RoutedEventArgs e) => App.Current.ShowSettings();
+    private void SettingsButton_Click(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke(this, EventArgs.Empty);
 
     private void Commit()
     {

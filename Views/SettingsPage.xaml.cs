@@ -1,27 +1,35 @@
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
 using TrayDo.Services;
 using Windows.ApplicationModel;
-using WinUIEx;
 
 namespace TrayDo.Views;
 
-public sealed partial class SettingsWindow : WindowEx
+/// <summary>
+/// Settings, shown in place of the tasks inside the flyout. Changes apply as they're made; Back
+/// (or Alt+Left) returns to the tasks.
+/// </summary>
+public sealed partial class SettingsPage : Page
 {
     private bool _loading = true;
 
-    public SettingsWindow()
+    public SettingsPage()
     {
         InitializeComponent();
-        Title = $"{App.DisplayName} Settings";
-        AppTitleBar.Title = Title;
-        ExtendsContentIntoTitleBar = true;
-        SetTitleBar(AppTitleBar);
-        AppWindow.SetIcon(Path.Combine(AppContext.BaseDirectory, "Assets", "AppIcon.ico"));
-        WindowPlacementService.CenterOnPrimary(this, 480, 560);
-
         VersionText.Text = $"{App.DisplayName} {GetVersion()}";
-        _ = LoadStartupStateAsync();
         _loading = false;
+    }
+
+    public event EventHandler? BackRequested;
+
+    /// <summary>
+    /// The page came into view: re-read the startup state, since it can change outside the app
+    /// (Task Manager, Settings > Apps > Startup).
+    /// </summary>
+    public void OnShown()
+    {
+        _ = LoadStartupStateAsync();
+        BackButton.Focus(FocusState.Programmatic);
     }
 
     private static string GetVersion()
@@ -36,6 +44,8 @@ public sealed partial class SettingsWindow : WindowEx
             return "(unpackaged)";
         }
     }
+
+    private void BackButton_Click(object sender, RoutedEventArgs e) => BackRequested?.Invoke(this, EventArgs.Empty);
 
     private async Task LoadStartupStateAsync()
     {

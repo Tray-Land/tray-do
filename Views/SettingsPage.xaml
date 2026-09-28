@@ -1,32 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ex:WindowEx
-    x:Class="TrayDo.Views.SettingsWindow"
+<Page
+    x:Class="TrayDo.Views.SettingsPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:ex="using:WinUIEx"
-    Title="Settings">
+    Background="Transparent">
 
-    <!--  Mica for the long-lived window; the transient flyout uses acrylic like the shell's.  -->
-    <ex:WindowEx.SystemBackdrop>
-        <MicaBackdrop />
-    </ex:WindowEx.SystemBackdrop>
-
-    <Grid>
+    <Grid Padding="16,12,12,16" RowSpacing="8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <TitleBar x:Name="AppTitleBar" Title="Settings">
-            <TitleBar.IconSource>
-                <ImageIconSource ImageSource="ms-appx:///Assets/StoreLogo.png" />
-            </TitleBar.IconSource>
-        </TitleBar>
+        <!--  Header: back to the tasks, like a Quick Settings sub-page  -->
+        <Grid ColumnSpacing="4">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Button
+                x:Name="BackButton"
+                Margin="-8,0,0,0"
+                AutomationProperties.Name="Back"
+                Click="BackButton_Click"
+                Style="{StaticResource FlyoutIconButtonStyle}"
+                ToolTipService.ToolTip="Back">
+                <FontIcon FontSize="14" Glyph="&#xE72B;" />
+                <Button.KeyboardAccelerators>
+                    <KeyboardAccelerator Key="Left" Modifiers="Menu" />
+                </Button.KeyboardAccelerators>
+            </Button>
+            <TextBlock
+                Grid.Column="1"
+                VerticalAlignment="Center"
+                Style="{StaticResource SubtitleTextBlockStyle}"
+                Text="Settings" />
+        </Grid>
 
-        <ScrollViewer Grid.Row="1">
-            <StackPanel Padding="24,8,24,24" Spacing="4">
+        <ScrollViewer Grid.Row="1" Margin="0,0,-12,0">
+            <StackPanel Margin="0,0,12,0" Spacing="4">
                 <TextBlock
-                    Margin="0,0,0,8"
+                    Margin="0,8,0,8"
                     Style="{StaticResource BodyStrongTextBlockStyle}"
                     Text="General" />
 
@@ -37,7 +50,7 @@
                     BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                     BorderThickness="1"
                     ColumnSpacing="12"
-                    CornerRadius="4">
+                    CornerRadius="8">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
@@ -70,4 +83,4 @@
             </StackPanel>
         </ScrollViewer>
     </Grid>
-</ex:WindowEx>
+</Page>

@@ -2,6 +2,8 @@ using System.Diagnostics;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media.Animation;
 using Microsoft.UI.Xaml.Input;
 using TrayDo.Controls;
 using TrayDo.Services;
@@ -20,7 +22,8 @@ namespace TrayDo.Views;
 /// Borderless, always-on-top popup shown against the tray icon, styled like the shell's own
 /// flyouts. Slides and fades in, light-dismisses when focus leaves. Dismissing only hides it, so
 /// reopening soon after is instant; after <see cref="CloseDelay"/> hidden it closes for real and
-/// the next open builds a new window, so the idle app holds no XAML tree.
+/// the next open builds a new window, so the idle app holds no XAML tree. Settings is a second
+/// page in the same popup, built the first time it's opened.
 /// </summary>
 public sealed partial class TrayFlyoutWindow : WindowEx
 {
@@ -47,6 +50,8 @@ public sealed partial class TrayFlyoutWindow : WindowEx
 
     private readonly HWND _hwnd;
     private readonly FlyoutPage _page = new();
+    private readonly TransitionCollection _pageTransitions;
+    private SettingsPage? _settingsPage;
     private readonly ShellBackdrop _backdrop = new();
     private readonly UISettings _uiSettings = new();
     private readonly DispatcherQueueTimer _hideTimer;
@@ -78,7 +83,9 @@ public sealed partial class TrayFlyoutWindow : WindowEx
     {
         InitializeComponent();
         _hwnd = (HWND)WindowNative.GetWindowHandle(this);
+        _pageTransitions = PageHost.ContentTransitions;
         PageHost.Content = _page;
+        _page.SettingsRequested += (_, _) => ShowSettingsPage(animate: true);
 
         SystemBackdrop = _backdrop;
         ApplyShellTheme();
@@ -135,6 +142,9 @@ public sealed partial class TrayFlyoutWindow : WindowEx
         _isShowing = true;
         _isPopupVisible = true;
 
+        // Every open starts on the tasks.
+        SetPage(_page, animate: false);
+
         // Re-read here too: not every taskbar setting change raises ColorValuesChanged.
         ApplyShellTheme();
         PlayShowAnimation();
@@ -144,6 +154,18 @@ public sealed partial class TrayFlyoutWindow : WindowEx
         PInvoke.SetForegroundWindow(_hwnd);
 
         _page.OnShown();
+    }
+
+    /// <summary>Opens the popup on the settings page.</summary>
+    public void ShowSettings()
+    {
+        bool wasVisible = _isPopupVisible;
+        if (!wasVisible)
+        {
+            ShowPopup();
+        }
+
+        ShowSettingsPage(animate: wasVisible);
     }
 
     public void HidePopup()
@@ -189,6 +211,37 @@ public sealed partial class TrayFlyoutWindow : WindowEx
 
         _allowClose = true;
         Close();
+    }
+
+    private void ShowSettingsPage(bool animate)
+    {
+        if (_settingsPage is null)
+        {
+            _settingsPage = new SettingsPage();
+            _settingsPage.BackRequested += (_, _) => ShowTasksPage();
+        }
+
+        _page.OnHidden();
+        SetPage(_settingsPage, animate);
+        _settingsPage.OnShown();
+    }
+
+    private void ShowTasksPage()
+    {
+        SetPage(_page, animate: true);
+        _page.OnShown();
+    }
+
+    /// <summary>Swaps the page, sliding it in only when moving between pages of an open popup.</summary>
+    private void SetPage(Page page, bool animate)
+    {
+        if (ReferenceEquals(PageHost.Content, page))
+        {
+            return;
+        }
+
+        PageHost.ContentTransitions = animate ? _pageTransitions : null;
+        PageHost.Content = page;
     }
 
     private void CloseIfStillHidden()

@@ -7,6 +7,7 @@ This is a tray-only WinUI 3 app built from the `winui-tray-app` skill scaffold o
 - Launch with `winapp run` (or `dotnet run`); never register the package by hand. Use `winapp run --clean` to test first-run behavior.
 - `App.xaml.cs` owns the tray icon, single instance, and the only exit path (the Exit menu). There is no main window.
 - The flyout (`Views/TrayFlyoutWindow`) is hidden on dismiss and closed after a minute hidden. Anything it starts, it must stop in `FlyoutPage.OnHidden` / `Dispose`.
+- Settings is a second page inside the flyout (`Views/SettingsPage`), not a window. `TrayFlyoutWindow` swaps it in for `FlyoutPage` and every open starts back on the tasks.
 - The app is offline-only: the scaffold's network and secrets services were removed, and the manifest has no `internetClient`.
 - Tasks live in `LocalState	asks.json`, owned by `Services/TodoStore`. Every change goes through `TodoStore.Board` (a `TrayDo.Core` `TodoBoard`) and then `TodoStore.Commit()`, which saves and raises `Changed`.
 - The tray icon becomes a drawn count (`Services/TrayBadge` + `BadgeFont`, pixels in `TrayDo.Core/Tray/BadgeIcon`) while the hit list has open tasks. It updates only on `TodoStore.Changed` and theme changes, never on a timer.
