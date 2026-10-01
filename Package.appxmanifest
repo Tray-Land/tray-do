@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:mp="http://schemas.microsoft.com/appx/2014/phone/manifest" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" xmlns:systemai="http://schemas.microsoft.com/appx/manifest/systemai/windows10" IgnorableNamespaces="uap rescap systemai uap5" xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5">
-  <Identity Name="13B0B505-33FE-400F-B1B4-4A3D566C2A2B" Publisher="CN=AppPublisher" Version="1.0.0.0" />
-  <mp:PhoneIdentity PhoneProductId="13B0B505-33FE-400F-B1B4-4A3D566C2A2B" PhonePublisherId="00000000-0000-0000-0000-000000000000" />
+<Package xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10" xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10" xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities" xmlns:systemai="http://schemas.microsoft.com/appx/manifest/systemai/windows10" IgnorableNamespaces="uap rescap systemai uap5" xmlns:uap5="http://schemas.microsoft.com/appx/manifest/uap/windows10/5">
+  <Identity Name="13B0B505-33FE-400F-B1B4-4A3D566C2A2B" Publisher="CN=Joseph Finney, O=Joseph Finney, L=Milwaukee, S=Wisconsin, C=US, PostalCode=53212" Version="1.0.0.0" />
   <Properties>
     <DisplayName>Tray Do</DisplayName>
-    <PublisherDisplayName>AppPublisher</PublisherDisplayName>
+    <PublisherDisplayName>JoeFinApps</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
   <Dependencies>
