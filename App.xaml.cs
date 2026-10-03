@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -29,6 +30,8 @@ public partial class App : Application
     private readonly TrayBadge _badge = new();
     private TrayFlyoutWindow? _flyout;
     private DispatcherQueue? _dispatcher;
+    private DispatcherQueueTimer? _dayRollover;
+    private bool _hadOpenHitList;
     private bool _isExiting;
 
     public App()
@@ -130,10 +133,34 @@ public partial class App : Application
             return;
         }
 
+        _dayRollover?.Stop();
         int remaining = TodoStore.Board.HitListRemaining;
         if (remaining > 0 && _badge.Show(_trayIcon, remaining))
         {
+            _hadOpenHitList = true;
             SetTrayStatus(remaining == 1 ? "1 task left on your hit list" : $"{remaining} tasks left on your hit list");
+            return;
+        }
+
+        // Finishing the last open task marks the hit list done for today; clearing it ends that.
+        string today = DateOnly.FromDateTime(DateTime.Now).ToString("O", CultureInfo.InvariantCulture);
+        if (TodoStore.Board.HitListCount == 0)
+        {
+            SettingsService.HitListCompletedOn = null;
+        }
+        else if (remaining == 0 && _hadOpenHitList)
+        {
+            SettingsService.HitListCompletedOn = today;
+        }
+
+        _hadOpenHitList = remaining > 0;
+
+        if (TodoStore.Board.HitListCount > 0 && SettingsService.HitListCompletedOn == today)
+        {
+            _trayIcon.SetIcon(HitListCompleteIconPath);
+            _badge.Release();
+            SetTrayStatus("hit list complete!");
+            ScheduleDayRollover();
             return;
         }
 
@@ -141,6 +168,26 @@ public partial class App : Application
         _badge.Release();
         SetTrayStatus(null);
     }
+
+    /// <summary>One-shot timer so the check mark gives way to the normal icon at local midnight.</summary>
+    private void ScheduleDayRollover()
+    {
+        if (_dispatcher is null)
+        {
+            return;
+        }
+
+        _dayRollover ??= _dispatcher.CreateTimer();
+        _dayRollover.IsRepeating = false;
+        _dayRollover.Interval = DateTime.Today.AddDays(1) - DateTime.Now + TimeSpan.FromSeconds(1);
+        _dayRollover.Tick -= DayRollover_Tick;
+        _dayRollover.Tick += DayRollover_Tick;
+        _dayRollover.Start();
+    }
+
+    private void DayRollover_Tick(DispatcherQueueTimer sender, object args) => UpdateTrayIcon();
+
+    private static string HitListCompleteIconPath => Path.Combine(AppContext.BaseDirectory, "Assets", "Check mark button.ico");
 
     // A white glyph disappears on a light taskbar, which follows the Windows theme, not the app theme.
     private static string TrayIconPath => Path.Combine(
@@ -216,6 +263,7 @@ public partial class App : Application
         }
 
         _badge.Release();
+        _dayRollover?.Stop();
 
         _showWait?.Unregister(null);
         _showEvent?.Dispose();

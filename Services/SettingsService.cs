@@ -31,6 +31,13 @@ internal static class SettingsService
         set => Set(nameof(ShowHitList), value);
     }
 
+    /// <summary>The local date (ISO, yyyy-MM-dd) the hit list was last finished, or null.</summary>
+    public static string? HitListCompletedOn
+    {
+        get => Get<string?>(nameof(HitListCompletedOn), null);
+        set => Set(nameof(HitListCompletedOn), value);
+    }
+
     public static T? GetJson<T>(string key, JsonTypeInfo<T> typeInfo)
     {
         if (Get<string?>(key, null) is not { } json)
