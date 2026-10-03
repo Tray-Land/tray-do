@@ -203,7 +203,11 @@
 
         <!--  Hit list: the tasks picked for now, in the order they'll be done  -->
         <Grid
+                AllowDrop="True"
             x:Name="HitView"
+                CanDragItems="True"
+                CanReorderItems="True"
+                DragItemsCompleted="AllList_DragItemsCompleted"
             Grid.Row="4"
             RowSpacing="4"
             Visibility="Collapsed">

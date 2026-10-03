@@ -132,6 +132,40 @@ public sealed class TodoBoardTests
     }
 
     [TestMethod]
+    public void SetOpenOrder_ReordersOpenTasksAndLeavesDoneOnes()
+    {
+        TodoBoard board = new();
+        board.Add(["a", "b", "c", "d"], addToHitList: false, Now);
+        Guid[] ids = [.. board.AllItems.Select(i => i.Id)];
+        board.SetDone(ids[1], true, Now);
+
+        Assert.IsTrue(board.SetOpenOrder([ids[3], ids[1], ids[0]]));
+
+        CollectionAssert.AreEqual(new[] { "d", "a", "c", "b" }, Texts(board.AllItems));
+    }
+
+    [TestMethod]
+    public void SetOpenOrder_SameOrder_ReportsNoChange()
+    {
+        TodoBoard board = new();
+        board.Add(["a", "b"], addToHitList: false, Now);
+
+        Assert.IsFalse(board.SetOpenOrder(board.AllItems.Select(i => i.Id)));
+    }
+
+    [TestMethod]
+    public void MoveOpenTask_ClampsTheTargetIndex()
+    {
+        TodoBoard board = new();
+        board.Add(["a", "b", "c"], addToHitList: false, Now);
+        Guid a = board.AllItems[0].Id;
+
+        Assert.IsTrue(board.MoveOpenTask(a, 99));
+
+        CollectionAssert.AreEqual(new[] { "b", "c", "a" }, Texts(board.AllItems));
+    }
+
+    [TestMethod]
     public void Remove_TakesTaskOffTheHitListToo()
     {
         TodoBoard board = new();

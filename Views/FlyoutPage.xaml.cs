@@ -216,6 +216,18 @@ public sealed partial class FlyoutPage : Page, IDisposable
         if (onHitList && IsHitListShown)
         {
             int index = _hitRows.IndexOf(row);
+    private void MoveOpen(TodoItemViewModel row, int index)
+    {
+        if (Board.MoveOpenTask(row.Id, index))
+        {
+            Commit();
+            if (AllList.ContainerFromItem(row) is ListViewItem container)
+            {
+                container.Focus(FocusState.Keyboard);
+            }
+        }
+    }
+
             menu.Items.Add(new MenuFlyoutSeparator());
             menu.Items.Add(MenuItem("Move to top", "", () => Move(row, 0), enabled: index > 0));
             menu.Items.Add(MenuItem("Move up", "", () => Move(row, index - 1), enabled: index > 0));
@@ -245,6 +257,16 @@ public sealed partial class FlyoutPage : Page, IDisposable
             .HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
         switch (e.Key)
         {
+        if (!IsHitListShown && !row.IsDone)
+        {
+            int index = _allRows.IndexOf(row);
+            int lastOpen = _allRows.Count(r => !r.IsDone) - 1;
+            menu.Items.Add(new MenuFlyoutSeparator());
+            menu.Items.Add(MenuItem("Move to top", "", () => MoveOpen(row, 0), enabled: index > 0));
+            menu.Items.Add(MenuItem("Move up", "", () => MoveOpen(row, index - 1), enabled: index > 0));
+            menu.Items.Add(MenuItem("Move down", "", () => MoveOpen(row, index + 1), enabled: index < lastOpen));
+        }
+
             case VirtualKey.Delete:
                 Delete(row);
                 break;
@@ -282,6 +304,12 @@ public sealed partial class FlyoutPage : Page, IDisposable
         }
     }
 
+            case VirtualKey.Up when alt && ReferenceEquals(sender, AllList) && !row.IsDone:
+                MoveOpen(row, _allRows.IndexOf(row) - 1);
+                break;
+            case VirtualKey.Down when alt && ReferenceEquals(sender, AllList) && !row.IsDone:
+                MoveOpen(row, _allRows.IndexOf(row) + 1);
+                break;
     private void DeleteCompleted_Click(object sender, RoutedEventArgs e)
     {
         int count = Board.RemoveCompleted();
@@ -289,6 +317,19 @@ public sealed partial class FlyoutPage : Page, IDisposable
         {
             Commit();
             FooterText.Text = count == 1 ? "Deleted 1 completed task" : $"Deleted {count} completed tasks";
+    private void AllList_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        if (Board.SetOpenOrder(_allRows.Select(r => r.Id)))
+        {
+            Commit();
+        }
+        else
+        {
+            // Dropped somewhere that changes nothing (such as among the done tasks): snap back.
+            Sync();
+        }
+    }
+
         }
     }
 

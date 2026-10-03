@@ -181,6 +181,42 @@ public sealed class TodoBoard
         _data.HitList = reordered;
     }
 
+    /// <summary>
+    /// Takes the order of the open tasks from a drag-reorder of "All tasks". Done tasks are ignored
+    /// (they sort by completion time), and open tasks missing from <paramref name="order"/> keep
+    /// their relative order after the listed ones, so nothing drops off.
+    /// </summary>
+    public bool SetOpenOrder(IEnumerable<Guid> order)
+    {
+        Dictionary<Guid, TodoItem> open = _data.Items.Where(i => !i.IsDone).ToDictionary(i => i.Id);
+        List<TodoItem> reordered = [.. order.Where(open.ContainsKey).Distinct().Select(id => open[id])];
+        HashSet<Guid> placed = [.. reordered.Select(i => i.Id)];
+        reordered.AddRange(_data.Items.Where(i => !i.IsDone && !placed.Contains(i.Id)));
+
+        if (reordered.SequenceEqual(_data.Items.Where(i => !i.IsDone)))
+        {
+            return false;
+        }
+
+        _data.Items = [.. reordered, .. _data.Items.Where(i => i.IsDone)];
+        return true;
+    }
+
+    /// <summary>Moves an open task to <paramref name="index"/> among the open tasks (clamped).</summary>
+    public bool MoveOpenTask(Guid id, int index)
+    {
+        List<Guid> open = [.. _data.Items.Where(i => !i.IsDone).Select(i => i.Id)];
+        int from = open.IndexOf(id);
+        if (from < 0)
+        {
+            return false;
+        }
+
+        open.RemoveAt(from);
+        open.Insert(Math.Clamp(index, 0, open.Count), id);
+        return SetOpenOrder(open);
+    }
+
     /// <summary>Empties the hit list. The tasks themselves are untouched.</summary>
     public int ClearHitList()
     {
