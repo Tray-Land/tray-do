@@ -346,6 +346,30 @@ public sealed partial class FlyoutPage : Page, IDisposable
             _editFlyout.ShowAt(target);
             _editBox.SelectAll();
             _editBox.Focus(FocusState.Programmatic);
+    /// <summary>Puts every open task on the clipboard as a Markdown checkbox list.</summary>
+    private void CopyAsList_Click(object sender, RoutedEventArgs e)
+    {
+        List<TodoItem> open = [.. Board.AllItems.Where(i => !i.IsDone)];
+        if (open.Count == 0)
+        {
+            FooterText.Text = "No open tasks to copy";
+            return;
+        }
+
+        try
+        {
+            DataPackage package = new();
+            package.SetText(TaskListText.ToMarkdown(open));
+            Clipboard.SetContent(package);
+            FooterText.Text = open.Count == 1 ? "Copied 1 task" : $"Copied {open.Count} tasks";
+        }
+        catch (Exception)
+        {
+            // The clipboard can be locked by another app for a moment.
+            FooterText.Text = "Couldn't copy to the clipboard";
+        }
+    }
+
         });
     }
 

@@ -121,6 +121,13 @@
                 <Button.Flyout>
                     <MenuFlyout Placement="BottomEdgeAlignedRight">
                         <MenuFlyoutItem
+                        <MenuFlyoutItem
+                            Click="CopyAsList_Click"
+                            Text="Copy as text list">
+                            <MenuFlyoutItem.Icon>
+                                <FontIcon Glyph="&#xE8C8;" />
+                            </MenuFlyoutItem.Icon>
+                        </MenuFlyoutItem>
                             x:Name="DeleteCompletedItem"
                             Click="DeleteCompleted_Click"
                             Text="Delete completed tasks">
@@ -196,18 +203,18 @@
                 Margin="8,24"
                 HorizontalAlignment="Center"
                 Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                AllowDrop="True"
                 Text="No tasks yet. Type one above, or paste a list to add a task for each line."
+                CanDragItems="True"
+                CanReorderItems="True"
+                DragItemsCompleted="AllList_DragItemsCompleted"
                 TextAlignment="Center"
                 TextWrapping="Wrap" />
         </Grid>
 
         <!--  Hit list: the tasks picked for now, in the order they'll be done  -->
         <Grid
-                AllowDrop="True"
             x:Name="HitView"
-                CanDragItems="True"
-                CanReorderItems="True"
-                DragItemsCompleted="AllList_DragItemsCompleted"
             Grid.Row="4"
             RowSpacing="4"
             Visibility="Collapsed">
