@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml.Automation;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Controls.Primitives;
 using Microsoft.UI.Xaml.Input;
+using Microsoft.UI.Xaml.Media;
 using TrayDo.Services;
 using TrayDo.Tasks;
 using Windows.ApplicationModel.DataTransfer;
@@ -45,6 +46,28 @@ public sealed partial class FlyoutPage : Page, IDisposable
 
     /// <summary>The settings button was clicked; the window swaps in the settings page.</summary>
     public event EventHandler? SettingsRequested;
+
+    /// <summary>True while the flyout is pinned open (the window skips light-dismiss). Cleared when the flyout is hidden.</summary>
+    public bool IsPinned
+    {
+        get;
+        set
+        {
+            if (field == value)
+            {
+                return;
+            }
+
+            field = value;
+            string label = value ? "Unpin" : "Pin open";
+            PinIcon.Glyph = value ? "" : "";
+            PinIcon.Foreground = value
+                ? (Brush)Application.Current.Resources["AccentTextFillColorPrimaryBrush"]
+                : null;
+            AutomationProperties.SetName(PinButton, label);
+            ToolTipService.SetToolTip(PinButton, label);
+        }
+    }
 
     private static TodoBoard Board => TodoStore.Board;
 
@@ -193,6 +216,18 @@ public sealed partial class FlyoutPage : Page, IDisposable
         }
     }
 
+    private void MoveOpen(TodoItemViewModel row, int index)
+    {
+        if (Board.MoveOpenTask(row.Id, index))
+        {
+            Commit();
+            if (AllList.ContainerFromItem(row) is ListViewItem container)
+            {
+                container.Focus(FocusState.Keyboard);
+            }
+        }
+    }
+
     private void ItemMenu_Opening(object sender, object e)
     {
         MenuFlyout menu = (MenuFlyout)sender;
@@ -216,22 +251,20 @@ public sealed partial class FlyoutPage : Page, IDisposable
         if (onHitList && IsHitListShown)
         {
             int index = _hitRows.IndexOf(row);
-    private void MoveOpen(TodoItemViewModel row, int index)
-    {
-        if (Board.MoveOpenTask(row.Id, index))
-        {
-            Commit();
-            if (AllList.ContainerFromItem(row) is ListViewItem container)
-            {
-                container.Focus(FocusState.Keyboard);
-            }
-        }
-    }
-
             menu.Items.Add(new MenuFlyoutSeparator());
             menu.Items.Add(MenuItem("Move to top", "", () => Move(row, 0), enabled: index > 0));
             menu.Items.Add(MenuItem("Move up", "", () => Move(row, index - 1), enabled: index > 0));
             menu.Items.Add(MenuItem("Move down", "", () => Move(row, index + 1), enabled: index < _hitRows.Count - 1));
+        }
+
+        if (!IsHitListShown && !row.IsDone)
+        {
+            int index = _allRows.IndexOf(row);
+            int lastOpen = _allRows.Count(r => !r.IsDone) - 1;
+            menu.Items.Add(new MenuFlyoutSeparator());
+            menu.Items.Add(MenuItem("Move to top", "", () => MoveOpen(row, 0), enabled: index > 0));
+            menu.Items.Add(MenuItem("Move up", "", () => MoveOpen(row, index - 1), enabled: index > 0));
+            menu.Items.Add(MenuItem("Move down", "", () => MoveOpen(row, index + 1), enabled: index < lastOpen));
         }
 
         menu.Items.Add(new MenuFlyoutSeparator());
@@ -257,16 +290,6 @@ public sealed partial class FlyoutPage : Page, IDisposable
             .HasFlag(Windows.UI.Core.CoreVirtualKeyStates.Down);
         switch (e.Key)
         {
-        if (!IsHitListShown && !row.IsDone)
-        {
-            int index = _allRows.IndexOf(row);
-            int lastOpen = _allRows.Count(r => !r.IsDone) - 1;
-            menu.Items.Add(new MenuFlyoutSeparator());
-            menu.Items.Add(MenuItem("Move to top", "", () => MoveOpen(row, 0), enabled: index > 0));
-            menu.Items.Add(MenuItem("Move up", "", () => MoveOpen(row, index - 1), enabled: index > 0));
-            menu.Items.Add(MenuItem("Move down", "", () => MoveOpen(row, index + 1), enabled: index < lastOpen));
-        }
-
             case VirtualKey.Delete:
                 Delete(row);
                 break;
@@ -281,11 +304,30 @@ public sealed partial class FlyoutPage : Page, IDisposable
                 Move(row, _hitRows.IndexOf(row) + 1);
                 FocusRow(row);
                 break;
+            case VirtualKey.Up when alt && ReferenceEquals(sender, AllList) && !row.IsDone:
+                MoveOpen(row, _allRows.IndexOf(row) - 1);
+                break;
+            case VirtualKey.Down when alt && ReferenceEquals(sender, AllList) && !row.IsDone:
+                MoveOpen(row, _allRows.IndexOf(row) + 1);
+                break;
             default:
                 return;
         }
 
         e.Handled = true;
+    }
+
+    private void AllList_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
+    {
+        if (Board.SetOpenOrder(_allRows.Select(r => r.Id)))
+        {
+            Commit();
+        }
+        else
+        {
+            // Dropped somewhere that changes nothing (such as among the done tasks): snap back.
+            Sync();
+        }
     }
 
     private void HitList_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
@@ -304,48 +346,6 @@ public sealed partial class FlyoutPage : Page, IDisposable
         }
     }
 
-            case VirtualKey.Up when alt && ReferenceEquals(sender, AllList) && !row.IsDone:
-                MoveOpen(row, _allRows.IndexOf(row) - 1);
-                break;
-            case VirtualKey.Down when alt && ReferenceEquals(sender, AllList) && !row.IsDone:
-                MoveOpen(row, _allRows.IndexOf(row) + 1);
-                break;
-    private void DeleteCompleted_Click(object sender, RoutedEventArgs e)
-    {
-        int count = Board.RemoveCompleted();
-        if (count > 0)
-        {
-            Commit();
-            FooterText.Text = count == 1 ? "Deleted 1 completed task" : $"Deleted {count} completed tasks";
-    private void AllList_DragItemsCompleted(ListViewBase sender, DragItemsCompletedEventArgs args)
-    {
-        if (Board.SetOpenOrder(_allRows.Select(r => r.Id)))
-        {
-            Commit();
-        }
-        else
-        {
-            // Dropped somewhere that changes nothing (such as among the done tasks): snap back.
-            Sync();
-        }
-    }
-
-        }
-    }
-
-    // Editing
-
-    private void BeginEdit(TodoItemViewModel row, FrameworkElement target)
-    {
-        _editing = row;
-        _editBox.Text = row.Text;
-
-        // From the context menu, wait for the menu to finish closing first.
-        DispatcherQueue.TryEnqueue(() =>
-        {
-            _editFlyout.ShowAt(target);
-            _editBox.SelectAll();
-            _editBox.Focus(FocusState.Programmatic);
     /// <summary>Puts every open task on the clipboard as a Markdown checkbox list.</summary>
     private void CopyAsList_Click(object sender, RoutedEventArgs e)
     {
@@ -370,6 +370,29 @@ public sealed partial class FlyoutPage : Page, IDisposable
         }
     }
 
+    private void DeleteCompleted_Click(object sender, RoutedEventArgs e)
+    {
+        int count = Board.RemoveCompleted();
+        if (count > 0)
+        {
+            Commit();
+            FooterText.Text = count == 1 ? "Deleted 1 completed task" : $"Deleted {count} completed tasks";
+        }
+    }
+
+    // Editing
+
+    private void BeginEdit(TodoItemViewModel row, FrameworkElement target)
+    {
+        _editing = row;
+        _editBox.Text = row.Text;
+
+        // From the context menu, wait for the menu to finish closing first.
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            _editFlyout.ShowAt(target);
+            _editBox.SelectAll();
+            _editBox.Focus(FocusState.Programmatic);
         });
     }
 
@@ -408,6 +431,8 @@ public sealed partial class FlyoutPage : Page, IDisposable
         AddBox.PlaceholderText = hit ? "Add to the hit list" : "Add a task";
         SettingsService.ShowHitList = hit;
     }
+
+    private void PinButton_Click(object sender, RoutedEventArgs e) => IsPinned = !IsPinned;
 
     private void SettingsButton_Click(object sender, RoutedEventArgs e) => SettingsRequested?.Invoke(this, EventArgs.Empty);
 

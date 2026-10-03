@@ -179,6 +179,7 @@ public sealed partial class TrayFlyoutWindow : WindowEx
         }
 
         _isPopupVisible = false;
+        _page.IsPinned = false;
         _lastDismissedAtUtc = DateTime.UtcNow;
         _page.OnHidden();
         PlayHideAnimation();
@@ -370,7 +371,7 @@ public sealed partial class TrayFlyoutWindow : WindowEx
             return;
         }
 
-        if (_isShowing || !_isPopupVisible)
+        if (_isShowing || !_isPopupVisible || _page.IsPinned)
         {
             return;
         }
@@ -383,7 +384,7 @@ public sealed partial class TrayFlyoutWindow : WindowEx
     private void HideIfFocusLeftWindow()
     {
         _hideTimer.Stop();
-        if (_isPopupVisible && !ShouldRemainVisible(PInvoke.GetForegroundWindow()))
+        if (_isPopupVisible && !_page.IsPinned && !ShouldRemainVisible(PInvoke.GetForegroundWindow()))
         {
             HidePopup();
         }
