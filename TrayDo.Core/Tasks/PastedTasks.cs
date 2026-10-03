@@ -18,18 +18,52 @@ public static partial class PastedTasks
             return [];
         }
 
-        List<string> lines = [];
-        foreach (string line in text.Split(["\r\n", "\n", "\r"], StringSplitOptions.None))
+        List<string> lines =
+        [
+            .. text.Split(["\r\n", "\n", "\r"], StringSplitOptions.None)
+                .Select(l => StripInvisible(l).Trim())
+                .Where(l => l.Length > 0),
+        ];
+
+        // Look at the whole paste before each line on its own, so an artifact every line shares
+        // (a quote mark, a table bar, an arrow, an odd bullet) is stripped even if it isn't a known marker.
+        int shared = lines.Count > 1 ? SharedPrefixLength(lines) : 0;
+        return
+        [
+            .. lines
+                .Select(l => CleanLine(l[shared..]))
+                .Where(l => l.Length > 0),
+        ];
+    }
+
+    /// <summary>
+    /// Length of the leading run of symbols and spaces that every line starts with, cut back to end
+    /// at a space so "(maybe) a" and "(later) b" keep their brackets, as do "-5 C" and "-3 C".
+    /// </summary>
+    private static int SharedPrefixLength(List<string> lines)
+    {
+        string first = lines[0];
+        int length = 0;
+        while (length < first.Length
+            && !char.IsLetterOrDigit(first[length])
+            && lines.All(l => length < l.Length && l[length] == first[length]))
         {
-            string cleaned = CleanLine(line);
-            if (cleaned.Length > 0)
-            {
-                lines.Add(cleaned);
-            }
+            length++;
         }
 
-        return lines;
+        while (length > 0 && !char.IsWhiteSpace(first[length - 1]))
+        {
+            length--;
+        }
+
+        return length;
     }
+
+    /// <summary>Drops byte order marks and zero-width characters that ride along with copied text.</summary>
+    private static string StripInvisible(string line) =>
+        line.Contains('﻿') || line.Contains('​') || line.Contains('‌') || line.Contains('‍')
+            ? line.Replace("﻿", "").Replace("​", "").Replace("‌", "").Replace("‍", "")
+            : line;
 
     /// <summary>Strips list markers ("- ", "* ", "• ", "1. ", "2) ", "[ ] ", "- [x] ") and surrounding space.</summary>
     public static string CleanLine(string line)

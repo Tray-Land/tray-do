@@ -34,6 +34,28 @@ public sealed class PastedTasksTests
         Assert.AreEqual(line, PastedTasks.CleanLine(line));
 
     [TestMethod]
+    [DataRow("> Email Sam\n> Book flights", "Email Sam", "Book flights")]
+    [DataRow("| Email Sam\n| Book flights", "Email Sam", "Book flights")]
+    [DataRow("→ Email Sam\n→ Book flights", "Email Sam", "Book flights")]
+    [DataRow("   -  Email Sam\n   -  Book flights", "Email Sam", "Book flights")]
+    [DataRow("> - [ ] Email Sam\n> - [x] Book flights", "Email Sam", "Book flights")]
+    [DataRow("﻿- Email Sam\n​- Book flights", "Email Sam", "Book flights")]
+    public void Split_StripsAnArtifactEveryLineShares(string text, string first, string second) =>
+        CollectionAssert.AreEqual(new[] { first, second }, PastedTasks.Split(text).ToArray());
+
+    [TestMethod]
+    [DataRow("(maybe) Email Sam\n(later) Book flights")]
+    [DataRow("-5 degrees tonight\n-3 degrees tomorrow")]
+    public void Split_KeepsPunctuationNotSharedAcrossSpaceSeparatedLines(string text)
+    {
+        CollectionAssert.AreEqual(text.Split((char)10), PastedTasks.Split(text).ToArray());
+    }
+
+    [TestMethod]
+    public void Split_SingleLine_KeepsItsLeadingSymbols() =>
+        CollectionAssert.AreEqual(new[] { "> quoted" }, PastedTasks.Split("> quoted").ToArray());
+
+    [TestMethod]
     public void IsMultiLine_IgnoresTrailingNewlinesAndBlankLines()
     {
         Assert.IsFalse(PastedTasks.IsMultiLine("Just one\r\n\r\n"));
